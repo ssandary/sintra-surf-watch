@@ -12,6 +12,31 @@ const cameras = [
   { id: 'bcmagoito', name: 'Magoito', url: 'https://video-auth1.iol.pt/beachcam/bcmagoito/playlist.m3u8' },
 ];
 
+const splashMessages = [
+  'Intercepting available webcam streams',
+  'Decoding coded digital streams',
+  "Hacking MEO's mainframe",
+  'Descrambling scrambled video feeds',
+  'Negotiating with sleepy beach cameras',
+  'Borrowing six windows to the Atlantic',
+  'Convincing pixels to paddle faster',
+  "Untangling the internet's wetsuit",
+  'Asking the waves to hold still',
+  "Waking up Sintra's coastal satellites",
+];
+
+function nextSplashMessage() {
+  const key = 'sintra-surf-watch-splash-message';
+  try {
+    const current = Number.parseInt(localStorage.getItem(key) || '0', 10);
+    const index = Number.isSafeInteger(current) ? Math.abs(current) % splashMessages.length : 0;
+    localStorage.setItem(key, String((index + 1) % splashMessages.length));
+    return splashMessages[index];
+  } catch {
+    return splashMessages[Math.floor(Math.random() * splashMessages.length)];
+  }
+}
+
 const orderKey = 'sintra-surf-watch-camera-order';
 function orderedCameras() {
   try {
@@ -26,15 +51,11 @@ function orderedCameras() {
 
 const app = document.querySelector('#app');
 app.innerHTML = `
-  <section class="splash" aria-label="Loading Sintra Surf Watch">
+  <section class="splash" aria-label="Loading Sintra Surf Watch" role="button" tabindex="0">
     <div class="splash-center">
-      <span class="splash-logo" aria-hidden="true">
-        <svg viewBox="0 0 64 64" fill="none"><path d="M8 34c8-12 16-12 26 0s18 12 28 0M8 48c8-12 16-12 26 0s18 12 28 0" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>
-      </span>
-      <p>Intercepting available webcam streams<span class="loading-dots" aria-hidden="true">…</span></p>
-      <span class="splash-progress"><i></i><i></i><i></i></span>
+      <p><span class="splash-message"></span><span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span> <span class="splash-count" aria-live="polite">[0/6]</span></p>
     </div>
-    <p class="splash-signoff">You’re welcome, Samy</p>
+    <p class="splash-signoff">Seja bem-vindo!</p>
   </section>
   <main class="shell" aria-hidden="true">
     <header class="topbar">
@@ -77,28 +98,38 @@ const splash = app.querySelector('.splash');
 const viewer = app.querySelector('.viewer');
 const viewerMedia = app.querySelector('.viewer-media');
 const switcher = app.querySelector('.beach-switcher');
+const splashCount = app.querySelector('.splash-count');
+app.querySelector('.splash-message').textContent = nextSplashMessage();
 let expandedCard = null;
 let expandedPlaceholder = null;
 let thumbnailTimer = null;
 let landscapeMode = false;
+let videoZoom = 1;
+let pinchStartDistance = 0;
+let pinchStartScale = 1;
 const players = [];
 const suppressedClicks = new WeakSet();
 const readyPlayers = new Set();
-const splashStarted = performance.now();
-let splashDismissScheduled = false;
+let splashDismissed = false;
 
-function dismissSplash() {
-  if (splashDismissScheduled || splash.classList.contains('leaving')) return;
-  splashDismissScheduled = true;
-  const wait = Math.max(0, 1700 - (performance.now() - splashStarted));
-  window.setTimeout(() => {
-    splash.classList.add('leaving');
-    shell.removeAttribute('aria-hidden');
-    window.setTimeout(() => { splash.hidden = true; }, 700);
-  }, wait);
+function dismissSplash(immediate = false) {
+  if (splashDismissed) return;
+  splashDismissed = true;
+  shell.removeAttribute('aria-hidden');
+  if (immediate) {
+    splash.hidden = true;
+  } else {
+    window.setTimeout(() => {
+      splash.classList.add('leaving');
+      window.setTimeout(() => { splash.hidden = true; }, 450);
+    }, 220);
+  }
 }
 
-window.setTimeout(dismissSplash, 12000);
+splash.addEventListener('pointerup', () => dismissSplash(true));
+splash.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') dismissSplash(true);
+});
 
 function saveCameraOrder() {
   try {
@@ -209,6 +240,7 @@ function createPlayer(camera) {
   video.addEventListener('playing', () => {
     setStatus(card, 'live', 'Live');
     readyPlayers.add(camera.id);
+    splashCount.textContent = `[${readyPlayers.size}/${cameras.length}]`;
     if (readyPlayers.size === cameras.length) dismissSplash();
   });
   video.addEventListener('waiting', () => {
@@ -335,6 +367,19 @@ function placeInViewer(card) {
   }
 }
 
+function resetVideoZoom() {
+  videoZoom = 1;
+  pinchStartDistance = 0;
+  pinchStartScale = 1;
+  const video = expandedCard?.querySelector('video');
+  if (video) video.style.removeProperty('transform');
+  viewer.classList.remove('video-zoomed');
+}
+
+function viewerIsLandscape() {
+  return landscapeMode || window.matchMedia('(orientation: landscape)').matches;
+}
+
 function restoreExpandedCard() {
   if (!expandedCard || !expandedPlaceholder) return;
   const card = expandedCard;
@@ -364,6 +409,7 @@ function expand(card) {
 
 function switchExpanded(card) {
   if (!expandedCard || card === expandedCard) return;
+  resetVideoZoom();
   restoreExpandedCard();
   placeInViewer(card);
   attemptPlay(card.querySelector('video'), card);
@@ -371,6 +417,7 @@ function switchExpanded(card) {
 }
 
 function setLandscape(enabled) {
+  if (enabled) resetVideoZoom();
   landscapeMode = enabled;
   viewer.classList.toggle('landscape-mode', enabled);
   const button = viewer.querySelector('.orientation-button');
@@ -382,6 +429,7 @@ function setLandscape(enabled) {
 
 function closeExpanded() {
   if (!expandedCard) return;
+  resetVideoZoom();
   restoreExpandedCard();
   window.clearInterval(thumbnailTimer);
   thumbnailTimer = null;
@@ -505,6 +553,34 @@ function enableReordering() {
 
 viewer.querySelector('.viewer-close').addEventListener('click', closeExpanded);
 viewer.querySelector('.orientation-button').addEventListener('click', () => setLandscape(!landscapeMode));
+viewerMedia.addEventListener('touchstart', (event) => {
+  if (!expandedCard || viewerIsLandscape() || event.touches.length !== 2) return;
+  event.preventDefault();
+  pinchStartDistance = Math.hypot(
+    event.touches[0].clientX - event.touches[1].clientX,
+    event.touches[0].clientY - event.touches[1].clientY,
+  );
+  pinchStartScale = videoZoom;
+}, { passive: false });
+viewerMedia.addEventListener('touchmove', (event) => {
+  if (!pinchStartDistance || viewerIsLandscape() || event.touches.length !== 2) return;
+  event.preventDefault();
+  const distance = Math.hypot(
+    event.touches[0].clientX - event.touches[1].clientX,
+    event.touches[0].clientY - event.touches[1].clientY,
+  );
+  videoZoom = Math.min(4, Math.max(1, pinchStartScale * (distance / pinchStartDistance)));
+  expandedCard.querySelector('video').style.transform = `scale(${videoZoom})`;
+  viewer.classList.toggle('video-zoomed', videoZoom > 1.01);
+}, { passive: false });
+viewerMedia.addEventListener('touchend', (event) => {
+  if (event.touches.length < 2) pinchStartDistance = 0;
+});
+viewerMedia.addEventListener('touchcancel', () => { pinchStartDistance = 0; });
+const orientationQuery = window.matchMedia('(orientation: landscape)');
+orientationQuery.addEventListener?.('change', (event) => {
+  if (event.matches) resetVideoZoom();
+});
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeExpanded();
 });
