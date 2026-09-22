@@ -2,6 +2,10 @@ import Hls from 'hls.js';
 import './style.css';
 
 document.title = 'Sintra Surf Watch';
+document.documentElement.classList.toggle(
+  'standalone-app',
+  window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true,
+);
 
 const cameras = [
   { id: 'praiagrande', name: 'Praia Grande North', url: 'https://video-auth1.iol.pt/beachcam/praiagrande/playlist.m3u8' },
@@ -68,7 +72,6 @@ app.innerHTML = `
       </div>
     </header>
     <div class="grid" aria-label="Live beach cameras"></div>
-    <p class="hint">Tap to expand. Hold and drag to rearrange.</p>
     <footer class="audience">
       <svg class="eye-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12s3.4-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.4 5.5-9.5 5.5S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/></svg>
       <strong class="viewer-count" aria-live="polite">—</strong><span>watching now</span>
@@ -106,8 +109,10 @@ let expandedPlaceholder = null;
 let thumbnailTimer = null;
 let landscapeMode = false;
 let videoZoom = 1;
-let pinchStartDistance = 0;
-let pinchStartScale = 1;
+let videoPanX = 0;
+let videoPanY = 0;
+let touchGesture = null;
+const orientationQuery = window.matchMedia('(orientation: landscape)');
 const players = [];
 const suppressedClicks = new WeakSet();
 const readyPlayers = new Set();
@@ -117,6 +122,7 @@ function dismissSplash(immediate = false) {
   if (splashDismissed) return;
   splashDismissed = true;
   shell.removeAttribute('aria-hidden');
+  lockOverviewPortrait();
   if (immediate) {
     splash.hidden = true;
   } else {
@@ -370,15 +376,87 @@ function placeInViewer(card) {
 
 function resetVideoZoom() {
   videoZoom = 1;
-  pinchStartDistance = 0;
-  pinchStartScale = 1;
+  videoPanX = 0;
+  videoPanY = 0;
+  touchGesture = null;
   const video = expandedCard?.querySelector('video');
   if (video) video.style.removeProperty('transform');
   viewer.classList.remove('video-zoomed');
 }
 
-function viewerIsLandscape() {
-  return landscapeMode || window.matchMedia('(orientation: landscape)').matches;
+function constrainVideoPan(x, y, scale = videoZoom) {
+  const maxX = Math.max(0, (viewerMedia.clientWidth * (scale - 1)) / 2);
+  const maxY = Math.max(0, (viewerMedia.clientHeight * (scale - 1)) / 2);
+  return {
+    x: Math.min(maxX, Math.max(-maxX, x)),
+    y: Math.min(maxY, Math.max(-maxY, y)),
+  };
+}
+
+function applyVideoTransform() {
+  const video = expandedCard?.querySelector('video');
+  if (!video) return;
+  if (videoZoom <= 1.001) {
+    videoZoom = 1;
+    videoPanX = 0;
+    videoPanY = 0;
+    video.style.removeProperty('transform');
+  } else {
+    const pan = constrainVideoPan(videoPanX, videoPanY);
+    videoPanX = pan.x;
+    videoPanY = pan.y;
+    video.style.transform = `translate3d(${videoPanX}px, ${videoPanY}px, 0) scale(${videoZoom})`;
+  }
+  viewer.classList.toggle('video-zoomed', videoZoom > 1.01);
+}
+
+function gesturePoint(clientX, clientY) {
+  const bounds = viewerMedia.getBoundingClientRect();
+  const x = clientX - bounds.left - (bounds.width / 2);
+  const y = clientY - bounds.top - (bounds.height / 2);
+  if (landscapeMode && !orientationQuery.matches) return { x: y, y: -x };
+  return { x, y };
+}
+
+function touchCenter(touches) {
+  return gesturePoint(
+    (touches[0].clientX + touches[1].clientX) / 2,
+    (touches[0].clientY + touches[1].clientY) / 2,
+  );
+}
+
+function touchDistance(touches) {
+  return Math.max(1, Math.hypot(
+    touches[0].clientX - touches[1].clientX,
+    touches[0].clientY - touches[1].clientY,
+  ));
+}
+
+function startPinch(touches) {
+  const center = touchCenter(touches);
+  touchGesture = {
+    type: 'pinch',
+    distance: touchDistance(touches),
+    scale: videoZoom,
+    panX: videoPanX,
+    panY: videoPanY,
+    center,
+  };
+}
+
+function startPan(touch) {
+  const point = gesturePoint(touch.clientX, touch.clientY);
+  touchGesture = {
+    type: 'pan',
+    x: point.x,
+    y: point.y,
+    panX: videoPanX,
+    panY: videoPanY,
+  };
+}
+
+function lockOverviewPortrait() {
+  if (!expandedCard) screen.orientation?.lock?.('portrait-primary').catch(() => {});
 }
 
 function restoreExpandedCard() {
@@ -418,7 +496,6 @@ function switchExpanded(card) {
 }
 
 function setLandscape(enabled) {
-  if (enabled) resetVideoZoom();
   landscapeMode = enabled;
   viewer.classList.toggle('landscape-mode', enabled);
   const button = viewer.querySelector('.orientation-button');
@@ -438,8 +515,11 @@ function closeExpanded() {
   viewer.classList.remove('open');
   viewer.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('viewing-camera');
-  screen.orientation?.unlock?.();
-  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {}).finally(lockOverviewPortrait);
+  } else {
+    lockOverviewPortrait();
+  }
 }
 
 function enableReordering() {
@@ -555,32 +635,46 @@ function enableReordering() {
 viewer.querySelector('.viewer-close').addEventListener('click', closeExpanded);
 viewer.querySelector('.orientation-button').addEventListener('click', () => setLandscape(!landscapeMode));
 viewerMedia.addEventListener('touchstart', (event) => {
-  if (!expandedCard || viewerIsLandscape() || event.touches.length !== 2) return;
-  event.preventDefault();
-  pinchStartDistance = Math.hypot(
-    event.touches[0].clientX - event.touches[1].clientX,
-    event.touches[0].clientY - event.touches[1].clientY,
-  );
-  pinchStartScale = videoZoom;
+  if (!expandedCard) return;
+  if (event.touches.length === 2) {
+    event.preventDefault();
+    startPinch(event.touches);
+  } else if (event.touches.length === 1 && videoZoom > 1.01) {
+    event.preventDefault();
+    startPan(event.touches[0]);
+  }
 }, { passive: false });
 viewerMedia.addEventListener('touchmove', (event) => {
-  if (!pinchStartDistance || viewerIsLandscape() || event.touches.length !== 2) return;
-  event.preventDefault();
-  const distance = Math.hypot(
-    event.touches[0].clientX - event.touches[1].clientX,
-    event.touches[0].clientY - event.touches[1].clientY,
-  );
-  videoZoom = Math.min(4, Math.max(1, pinchStartScale * (distance / pinchStartDistance)));
-  expandedCard.querySelector('video').style.transform = `scale(${videoZoom})`;
-  viewer.classList.toggle('video-zoomed', videoZoom > 1.01);
+  if (!expandedCard) return;
+  if (event.touches.length === 2) {
+    event.preventDefault();
+    if (touchGesture?.type !== 'pinch') startPinch(event.touches);
+    const center = touchCenter(event.touches);
+    const nextScale = Math.min(4, Math.max(1, touchGesture.scale
+      * (touchDistance(event.touches) / touchGesture.distance)));
+    const contentX = (touchGesture.center.x - touchGesture.panX) / touchGesture.scale;
+    const contentY = (touchGesture.center.y - touchGesture.panY) / touchGesture.scale;
+    videoZoom = nextScale;
+    videoPanX = center.x - (contentX * nextScale);
+    videoPanY = center.y - (contentY * nextScale);
+    applyVideoTransform();
+  } else if (event.touches.length === 1 && videoZoom > 1.01) {
+    event.preventDefault();
+    if (touchGesture?.type !== 'pan') startPan(event.touches[0]);
+    const point = gesturePoint(event.touches[0].clientX, event.touches[0].clientY);
+    videoPanX = touchGesture.panX + (point.x - touchGesture.x);
+    videoPanY = touchGesture.panY + (point.y - touchGesture.y);
+    applyVideoTransform();
+  }
 }, { passive: false });
 viewerMedia.addEventListener('touchend', (event) => {
-  if (event.touches.length < 2) pinchStartDistance = 0;
+  if (event.touches.length === 2) startPinch(event.touches);
+  else if (event.touches.length === 1 && videoZoom > 1.01) startPan(event.touches[0]);
+  else touchGesture = null;
 });
-viewerMedia.addEventListener('touchcancel', () => { pinchStartDistance = 0; });
-const orientationQuery = window.matchMedia('(orientation: landscape)');
-orientationQuery.addEventListener?.('change', (event) => {
-  if (event.matches) resetVideoZoom();
+viewerMedia.addEventListener('touchcancel', () => { touchGesture = null; });
+orientationQuery.addEventListener?.('change', () => {
+  window.requestAnimationFrame(applyVideoTransform);
 });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeExpanded();

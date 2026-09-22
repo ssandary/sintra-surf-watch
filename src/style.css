@@ -61,7 +61,6 @@ h1 { overflow: hidden; margin: 0; font-size: 1.03rem; font-weight: 700; letter-s
 .close-icon { display: none; }
 .camera-name { display: block; max-width: 100%; font-size: clamp(.81rem, 3.5vw, .96rem); font-weight: 650; line-height: 1.15; text-wrap: balance; }
 
-.hint { flex: none; width: 100%; margin: 8px 0 0; color: #8fa9ab; font-size: .7rem; line-height: 1.2; text-align: center; }
 .audience { display: flex; flex: none; align-items: center; justify-content: center; gap: 6px; height: 27px; color: #a6bec0; font-size: .78rem; line-height: 1; white-space: nowrap; }
 .eye-icon { width: 17px; height: 17px; color: #60ded2; }
 .viewer-count { color: #f4faf9; font-size: .9rem; font-variant-numeric: tabular-nums; }
@@ -83,6 +82,8 @@ h1 { overflow: hidden; margin: 0; font-size: 1.03rem; font-weight: 700; letter-s
 .loading-dots i:nth-child(3) { animation-delay: .32s; }
 .splash-signoff { position: absolute; bottom: max(28px, env(safe-area-inset-bottom)); margin: 0; color: #799699; font-size: .72rem; }
 .version-label { position: fixed; z-index: 4; bottom: max(6px, calc(env(safe-area-inset-bottom) - 14px)); left: 50%; color: #ffffff61; font-size: 10px; line-height: 1; transform: translateX(-50%); pointer-events: none; }
+html.standalone-app .splash-signoff { bottom: calc(env(safe-area-inset-bottom) + 34px); }
+html.standalone-app .version-label { bottom: calc(env(safe-area-inset-bottom) + 14px); }
 @keyframes dot-pulse { 0%, 70%, 100% { opacity: .18; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-2px); } }
 
 /* Selected beach */
@@ -130,7 +131,6 @@ h1 { overflow: hidden; margin: 0; font-size: 1.03rem; font-weight: 700; letter-s
   .topbar { height: 34px; margin-bottom: 6px; }
   .brand-icon { width: 30px; height: 30px; }
   .brand-icon svg { width: 19px; height: 19px; }
-  .hint { margin-top: 5px; }
   .audience { height: 22px; }
 }
 
