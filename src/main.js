@@ -26,7 +26,17 @@ function orderedCameras() {
 
 const app = document.querySelector('#app');
 app.innerHTML = `
-  <main class="shell">
+  <section class="splash" aria-label="Loading Sintra Surf Watch">
+    <div class="splash-center">
+      <span class="splash-logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64" fill="none"><path d="M8 34c8-12 16-12 26 0s18 12 28 0M8 48c8-12 16-12 26 0s18 12 28 0" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>
+      </span>
+      <p>Intercepting available webcam streams<span class="loading-dots" aria-hidden="true">…</span></p>
+      <span class="splash-progress"><i></i><i></i><i></i></span>
+    </div>
+    <p class="splash-signoff">You’re welcome, Samy</p>
+  </section>
+  <main class="shell" aria-hidden="true">
     <header class="topbar">
       <div class="brand">
         <span class="brand-icon" aria-hidden="true">
@@ -42,12 +52,53 @@ app.innerHTML = `
       <strong class="viewer-count" aria-live="polite">—</strong><span>watching now</span>
     </footer>
   </main>
+  <section class="viewer" aria-hidden="true">
+    <div class="viewer-media"></div>
+    <div class="viewer-gradient" aria-hidden="true"></div>
+    <header class="viewer-header">
+      <div>
+        <span class="viewer-live"><i></i> Live</span>
+        <h2 class="viewer-name"></h2>
+      </div>
+      <div class="viewer-actions">
+        <button class="orientation-button" type="button" aria-label="Switch to landscape view">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="m8 3-2 2 2 2M16 21l2-2-2-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="viewer-close" type="button" aria-label="Close full-screen camera">×</button>
+      </div>
+    </header>
+    <nav class="beach-switcher" aria-label="Switch beach camera"></nav>
+  </section>
 `;
 
 const grid = app.querySelector('.grid');
+const shell = app.querySelector('.shell');
+const splash = app.querySelector('.splash');
+const viewer = app.querySelector('.viewer');
+const viewerMedia = app.querySelector('.viewer-media');
+const switcher = app.querySelector('.beach-switcher');
 let expandedCard = null;
+let expandedPlaceholder = null;
+let thumbnailTimer = null;
+let landscapeMode = false;
 const players = [];
 const suppressedClicks = new WeakSet();
+const readyPlayers = new Set();
+const splashStarted = performance.now();
+let splashDismissScheduled = false;
+
+function dismissSplash() {
+  if (splashDismissScheduled || splash.classList.contains('leaving')) return;
+  splashDismissScheduled = true;
+  const wait = Math.max(0, 1700 - (performance.now() - splashStarted));
+  window.setTimeout(() => {
+    splash.classList.add('leaving');
+    shell.removeAttribute('aria-hidden');
+    window.setTimeout(() => { splash.hidden = true; }, 700);
+  }, wait);
+}
+
+window.setTimeout(dismissSplash, 12000);
 
 function saveCameraOrder() {
   try {
@@ -155,7 +206,11 @@ function createPlayer(camera) {
   const player = { card, video, hls: null, retryTimer: null, camera };
   players.push(player);
 
-  video.addEventListener('playing', () => setStatus(card, 'live', 'Live'));
+  video.addEventListener('playing', () => {
+    setStatus(card, 'live', 'Live');
+    readyPlayers.add(camera.id);
+    if (readyPlayers.size === cameras.length) dismissSplash();
+  });
   video.addEventListener('waiting', () => {
     if (card.dataset.state !== 'error') setStatus(card, 'loading', 'Connecting');
   });
@@ -239,29 +294,102 @@ function scheduleRetry(player) {
   player.retryTimer = window.setTimeout(() => startPlayer(player), 8000);
 }
 
-function expand(card) {
-  if (expandedCard) closeExpanded();
-  expandedCard = card;
-  card.classList.add('expanded');
-  document.body.classList.add('viewing-camera');
-  card.querySelector('.camera-action').setAttribute('aria-label', `Close ${card.querySelector('.camera-name').textContent} camera`);
+function updateThumbnails() {
+  for (const button of switcher.querySelectorAll('.beach-thumb')) {
+    const player = players.find(({ camera }) => camera.id === button.dataset.id);
+    const canvas = button.querySelector('canvas');
+    if (!player || player.video.readyState < 2 || !canvas) continue;
+    try {
+      const context = canvas.getContext('2d');
+      context.drawImage(player.video, 0, 0, canvas.width, canvas.height);
+    } catch { /* A live label remains if the browser blocks video snapshots. */ }
+  }
+}
 
-  // Fullscreen and orientation lock work on some mobile browsers. CSS supplies
-  // the landscape view on browsers, including iPhone Safari, that block them.
-  if (card.requestFullscreen) {
-    card.requestFullscreen().then(() => {
-      screen.orientation?.lock?.('landscape').catch(() => {});
-    }).catch(() => {});
+function buildSwitcher() {
+  switcher.replaceChildren();
+  for (const player of players) {
+    const button = document.createElement('button');
+    button.className = 'beach-thumb';
+    button.type = 'button';
+    button.dataset.id = player.camera.id;
+    button.innerHTML = '<canvas width="180" height="110" aria-hidden="true"></canvas><span></span>';
+    button.querySelector('span').textContent = player.camera.name.replace('Praia Grande ', 'P. Grande ');
+    button.setAttribute('aria-label', `View ${player.camera.name}`);
+    button.addEventListener('click', () => switchExpanded(player.card));
+    switcher.append(button);
+  }
+  updateThumbnails();
+}
+
+function placeInViewer(card) {
+  expandedCard = card;
+  expandedPlaceholder = document.createComment(`camera-${card.dataset.id}`);
+  card.replaceWith(expandedPlaceholder);
+  card.classList.add('expanded');
+  viewerMedia.append(card);
+  viewer.querySelector('.viewer-name').textContent = card.querySelector('.camera-name').textContent;
+  for (const button of switcher.querySelectorAll('.beach-thumb')) {
+    button.classList.toggle('active', button.dataset.id === card.dataset.id);
+    button.setAttribute('aria-current', button.dataset.id === card.dataset.id ? 'true' : 'false');
+  }
+}
+
+function restoreExpandedCard() {
+  if (!expandedCard || !expandedPlaceholder) return;
+  const card = expandedCard;
+  card.classList.remove('expanded');
+  card.querySelector('.camera-action').setAttribute('aria-label', `Expand ${card.querySelector('.camera-name').textContent} camera`);
+  expandedPlaceholder.replaceWith(card);
+  expandedCard = null;
+  expandedPlaceholder = null;
+}
+
+function expand(card) {
+  if (expandedCard) switchExpanded(card);
+  else {
+    buildSwitcher();
+    placeInViewer(card);
+    viewer.classList.add('open');
+    viewer.removeAttribute('aria-hidden');
+    document.body.classList.add('viewing-camera');
+    thumbnailTimer = window.setInterval(updateThumbnails, 2000);
+    if (app.requestFullscreen && !document.fullscreenElement) {
+      app.requestFullscreen({ navigationUI: 'hide' }).then(() => {
+        screen.orientation?.lock?.('portrait-primary').catch(() => {});
+      }).catch(() => {});
+    }
+  }
+}
+
+function switchExpanded(card) {
+  if (!expandedCard || card === expandedCard) return;
+  restoreExpandedCard();
+  placeInViewer(card);
+  attemptPlay(card.querySelector('video'), card);
+  updateThumbnails();
+}
+
+function setLandscape(enabled) {
+  landscapeMode = enabled;
+  viewer.classList.toggle('landscape-mode', enabled);
+  const button = viewer.querySelector('.orientation-button');
+  button.setAttribute('aria-label', enabled ? 'Switch to portrait view' : 'Switch to landscape view');
+  if (document.fullscreenElement && screen.orientation?.lock) {
+    screen.orientation.lock(enabled ? 'landscape' : 'portrait-primary').catch(() => {});
   }
 }
 
 function closeExpanded() {
   if (!expandedCard) return;
-  const card = expandedCard;
-  expandedCard = null;
-  card.classList.remove('expanded');
+  restoreExpandedCard();
+  window.clearInterval(thumbnailTimer);
+  thumbnailTimer = null;
+  setLandscape(false);
+  viewer.classList.remove('open');
+  viewer.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('viewing-camera');
-  card.querySelector('.camera-action').setAttribute('aria-label', `Expand ${card.querySelector('.camera-name').textContent} camera`);
+  screen.orientation?.unlock?.();
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 }
 
@@ -375,9 +503,8 @@ function enableReordering() {
   });
 }
 
-document.addEventListener('fullscreenchange', () => {
-  if (!document.fullscreenElement && expandedCard) closeExpanded();
-});
+viewer.querySelector('.viewer-close').addEventListener('click', closeExpanded);
+viewer.querySelector('.orientation-button').addEventListener('click', () => setLandscape(!landscapeMode));
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeExpanded();
 });
