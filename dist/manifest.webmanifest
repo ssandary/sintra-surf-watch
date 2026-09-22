@@ -1,0 +1,14 @@
+{
+  "name": "Sintra Surf Watch",
+  "short_name": "Sintra Surf",
+  "description": "Live beach cameras near Sintra",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b171b",
+  "theme_color": "#0b171b",
+  "orientation": "any",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
