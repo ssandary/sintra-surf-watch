@@ -72,10 +72,6 @@ app.innerHTML = `
       </div>
     </header>
     <div class="grid" aria-label="Live beach cameras"></div>
-    <footer class="audience">
-      <svg class="eye-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12s3.4-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.4 5.5-9.5 5.5S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/></svg>
-      <strong class="viewer-count" aria-live="polite">—</strong><span>watching now</span>
-    </footer>
   </main>
   <section class="viewer" aria-hidden="true">
     <div class="viewer-media"></div>
@@ -142,69 +138,6 @@ function saveCameraOrder() {
   try {
     localStorage.setItem(orderKey, JSON.stringify([...grid.querySelectorAll('.camera-card')].map((card) => card.dataset.id)));
   } catch { /* The current order still works for this visit. */ }
-}
-
-function watchViewerCount() {
-  const count = app.querySelector('.viewer-count');
-  let viewerId;
-  try {
-    viewerId = localStorage.getItem('sintra-surf-watch-viewer');
-    if (!viewerId || !/^[a-f0-9-]{36}$/.test(viewerId)) {
-      viewerId = crypto.randomUUID();
-      localStorage.setItem('sintra-surf-watch-viewer', viewerId);
-    }
-  } catch {
-    viewerId = crypto.randomUUID();
-  }
-
-  let socket = null;
-  let retryTimer = null;
-  let heartbeatTimer = null;
-  let retryDelay = 1000;
-
-  function connect() {
-    if (document.hidden || socket) return;
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    socket = new WebSocket(`${protocol}//${location.host}/presence`);
-
-    socket.addEventListener('open', () => {
-      socket.send(JSON.stringify({ type: 'join', viewerId }));
-      retryDelay = 1000;
-      heartbeatTimer = window.setInterval(() => {
-        if (socket?.readyState === WebSocket.OPEN) socket.send('{"type":"heartbeat"}');
-      }, 30000);
-    });
-    socket.addEventListener('message', (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        if (message.type === 'viewers' && Number.isSafeInteger(message.count) && message.count >= 0) {
-          count.textContent = String(message.count);
-        }
-      } catch { /* Ignore unexpected messages. */ }
-    });
-    socket.addEventListener('error', () => socket?.close());
-    socket.addEventListener('close', () => {
-      window.clearInterval(heartbeatTimer);
-      socket = null;
-      count.textContent = '—';
-      if (!document.hidden) {
-        retryTimer = window.setTimeout(connect, retryDelay);
-        retryDelay = Math.min(retryDelay * 2, 15000);
-      }
-    });
-  }
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      window.clearTimeout(retryTimer);
-      socket?.close();
-      count.textContent = '—';
-    } else {
-      connect();
-    }
-  });
-  window.addEventListener('pagehide', () => socket?.close());
-  connect();
 }
 
 function setStatus(card, state, message) {
@@ -685,4 +618,3 @@ document.addEventListener('visibilitychange', () => {
 
 orderedCameras().forEach(createPlayer);
 enableReordering();
-watchViewerCount();

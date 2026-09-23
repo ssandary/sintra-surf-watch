@@ -4,20 +4,17 @@ A mobile-first live view of six beach cameras near Sintra. All six muted streams
 
 The app opens with a full-screen welcome while all six camera streams start in the background. Its rotating loading message reports live progress from `[0/6]` to `[6/6]`, and a tap skips directly to the dashboard. The dashboard is fixed to the portrait phone viewport and does not scroll. Selecting a beach opens a viewer with live snapshot buttons for the other beaches, pinch zoom and one-finger panning on the selected video, and an optional landscape control that hides the other feeds while keeping zoom and pan available.
 
-The “watching now” counter shows the number of distinct browsers with this page currently visible. Multiple tabs in the same browser count once; reconnects and network interruptions can briefly change the number.
-
 ## Run locally
 
 ```sh
 npm ci
-npm run build
-npm start
+npm run dev
 ```
 
-Open `http://localhost:10000/`. Set `PORT` to use a different local port. `npm run dev` runs the camera interface alone without the viewer counter.
+Open the local address printed by Vite. To test the production build, run `npm run build` followed by `npm run preview`.
 
 ## Deploy on Render Free
 
-The included `render.yaml` configures one free Node web service. Connect this repository in Render and create a Blueprint from `render.yaml`, or create a Web Service using the Free plan with build command `npm ci && npm run build` and start command `npm start`.
+The included `render.yaml` configures a static site named `sintra-surf-watch-static`. Render cannot change an existing web service into a static site in place, so create this as a new service, verify its new URL, and then remove the old `sintra-surf-watch` web service. If configuring it manually, create a Static Site with build command `npm ci && npm run build` and publish directory `dist`.
 
 The camera streams come directly from IOL's public HLS endpoints. If an upstream camera goes offline, its tile retries automatically.

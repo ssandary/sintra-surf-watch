@@ -6,13 +6,10 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "start": "node server.js"
+    "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
-    "express": "^5.2.1",
-    "hls.js": "^1.6.13",
-    "ws": "^8.21.3"
+    "hls.js": "^1.6.13"
   },
   "devDependencies": {
     "vite": "^7.1.7"

@@ -1,8 +1,6 @@
 services:
   - type: web
-    name: sintra-surf-watch
-    runtime: node
-    plan: free
+    name: sintra-surf-watch-static
+    runtime: static
     buildCommand: npm ci && npm run build
-    startCommand: npm start
-    healthCheckPath: /health
+    staticPublishPath: ./dist

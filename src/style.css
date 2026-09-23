@@ -61,10 +61,6 @@ h1 { overflow: hidden; margin: 0; font-size: 1.03rem; font-weight: 700; letter-s
 .close-icon { display: none; }
 .camera-name { display: block; max-width: 100%; font-size: clamp(.81rem, 3.5vw, .96rem); font-weight: 650; line-height: 1.15; text-wrap: balance; }
 
-.audience { display: flex; flex: none; align-items: center; justify-content: center; gap: 6px; height: 27px; color: #a6bec0; font-size: .78rem; line-height: 1; white-space: nowrap; }
-.eye-icon { width: 17px; height: 17px; color: #60ded2; }
-.viewer-count { color: #f4faf9; font-size: .9rem; font-variant-numeric: tabular-nums; }
-
 .drag-placeholder { min-width: 0; min-height: 0; border: 1px dashed #59cbbf; border-radius: 14px; background: #1b3639; }
 .camera-card.is-dragging { position: fixed; z-index: 700; pointer-events: none; transform: scale(1.045); box-shadow: 0 22px 48px #0009, 0 0 0 2px #60ded2; }
 
@@ -131,7 +127,6 @@ html.standalone-app .version-label { bottom: calc(env(safe-area-inset-bottom) + 
   .topbar { height: 34px; margin-bottom: 6px; }
   .brand-icon { width: 30px; height: 30px; }
   .brand-icon svg { width: 19px; height: 19px; }
-  .audience { height: 22px; }
 }
 
 @media (max-width: 345px) {
