@@ -1,4 +1,5 @@
 import Hls from 'hls.js';
+import packageMetadata from '../package.json';
 import './style.css';
 
 document.title = 'Sintra Surf Watch';
@@ -54,13 +55,14 @@ function orderedCameras() {
 }
 
 const app = document.querySelector('#app');
+const displayVersion = packageMetadata.version.replace(/\.0$/, '');
 app.innerHTML = `
   <section class="splash" aria-label="Loading Sintra Surf Watch" role="button" tabindex="0">
     <div class="splash-center">
       <p><span class="splash-message"></span><span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span> <span class="splash-count" aria-live="polite">[0/6]</span></p>
     </div>
     <p class="splash-signoff">Seja bem-vindo!</p>
-    <span class="version-label" aria-label="Version 0.3">v0.3</span>
+    <span class="version-label" aria-label="Version ${displayVersion}">v${displayVersion}</span>
   </section>
   <main class="shell" aria-hidden="true">
     <header class="topbar">
