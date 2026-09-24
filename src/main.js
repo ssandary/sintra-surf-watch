@@ -77,6 +77,10 @@ app.innerHTML = `
         <span>Share</span>
       </button>
     </header>
+    <div class="pull-refresh" role="status" aria-live="polite">
+      <span class="refresh-spinner" aria-hidden="true"></span>
+      <span class="refresh-copy">Pull to refresh</span>
+    </div>
     <div class="grid" aria-label="Live beach cameras"></div>
   </main>
   <section class="viewer" aria-hidden="true">
@@ -119,6 +123,10 @@ const players = [];
 const suppressedClicks = new WeakSet();
 const readyPlayers = new Set();
 let splashDismissed = false;
+let pullGesture = null;
+let refreshing = false;
+let refreshPending = new Set();
+let refreshTimer = null;
 
 function dismissSplash(immediate = false) {
   if (splashDismissed) return;
@@ -188,6 +196,10 @@ function createPlayer(camera) {
     readyPlayers.add(camera.id);
     splashCount.textContent = `[${readyPlayers.size}/${cameras.length}]`;
     if (readyPlayers.size === cameras.length) dismissSplash();
+    if (refreshing) {
+      refreshPending.delete(camera.id);
+      if (refreshPending.size === 0) finishRefresh();
+    }
   });
   video.addEventListener('waiting', () => {
     if (card.dataset.state !== 'error') setStatus(card, 'loading', 'Connecting');
@@ -270,6 +282,105 @@ function scheduleRetry(player) {
   if (player.retryTimer) return;
   setStatus(player.card, 'error', 'Retrying stream');
   player.retryTimer = window.setTimeout(() => startPlayer(player), 8000);
+}
+
+function setPullDistance(distance) {
+  const triggerDistance = 58;
+  const progress = Math.min(1, distance / triggerDistance);
+  shell.style.setProperty('--pull-distance', `${distance}px`);
+  shell.style.setProperty('--pull-progress', String(progress));
+  shell.classList.toggle('refresh-ready', distance >= triggerDistance);
+  app.querySelector('.refresh-copy').textContent = distance >= triggerDistance
+    ? 'Release to refresh'
+    : 'Pull to refresh';
+}
+
+function resetPullInterface() {
+  pullGesture = null;
+  shell.classList.remove('pulling', 'refresh-ready', 'refresh-complete');
+  setPullDistance(0);
+  app.querySelector('.refresh-copy').textContent = 'Pull to refresh';
+}
+
+function finishRefresh() {
+  if (!refreshing) return;
+  refreshing = false;
+  window.clearTimeout(refreshTimer);
+  refreshTimer = null;
+  shell.classList.remove('refreshing', 'refresh-ready');
+  shell.classList.add('refresh-complete');
+  app.querySelector('.refresh-copy').textContent = 'Feeds updated';
+  shell.style.setProperty('--pull-distance', '0px');
+  window.setTimeout(resetPullInterface, 650);
+}
+
+function refreshStreams() {
+  if (refreshing || expandedCard) return;
+  refreshing = true;
+  pullGesture = null;
+  refreshPending = new Set(players.map(({ camera }) => camera.id));
+  shell.classList.remove('pulling', 'refresh-ready');
+  shell.classList.add('refreshing');
+  shell.style.setProperty('--pull-distance', '36px');
+  shell.style.setProperty('--pull-progress', '1');
+  app.querySelector('.refresh-copy').textContent = 'Refreshing feeds';
+  players.forEach(startPlayer);
+  refreshTimer = window.setTimeout(finishRefresh, 6500);
+}
+
+function enablePullToRefresh() {
+  const triggerDistance = 58;
+  const maximumDistance = 82;
+
+  shell.addEventListener('touchstart', (event) => {
+    if (expandedCard || refreshing || event.touches.length !== 1 || event.target.closest('.topbar')) return;
+    const touch = event.touches[0];
+    pullGesture = {
+      id: touch.identifier,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      distance: 0,
+      active: false,
+    };
+  }, { passive: true });
+
+  shell.addEventListener('touchmove', (event) => {
+    if (!pullGesture || refreshing) return;
+    if (grid.querySelector('.is-dragging')) {
+      resetPullInterface();
+      return;
+    }
+    const touch = [...event.touches].find((item) => item.identifier === pullGesture.id);
+    if (!touch) return;
+    const deltaX = touch.clientX - pullGesture.startX;
+    const deltaY = touch.clientY - pullGesture.startY;
+
+    if (!pullGesture.active) {
+      if (deltaY > 8 && deltaY > Math.abs(deltaX) * 1.2) {
+        pullGesture.active = true;
+        shell.classList.add('pulling');
+      } else if (deltaY < -8 || Math.abs(deltaX) > 12) {
+        pullGesture = null;
+        return;
+      }
+    }
+    if (!pullGesture.active) return;
+
+    event.preventDefault();
+    pullGesture.distance = Math.min(maximumDistance, Math.max(0, deltaY * 0.58));
+    setPullDistance(pullGesture.distance);
+  }, { passive: false });
+
+  const release = (event) => {
+    if (!pullGesture) return;
+    if (event?.changedTouches
+      && ![...event.changedTouches].some((touch) => touch.identifier === pullGesture.id)) return;
+    const shouldRefresh = pullGesture.active && pullGesture.distance >= triggerDistance;
+    if (shouldRefresh) refreshStreams();
+    else resetPullInterface();
+  };
+  shell.addEventListener('touchend', release);
+  shell.addEventListener('touchcancel', release);
 }
 
 function updateThumbnails() {
@@ -654,4 +765,5 @@ document.addEventListener('visibilitychange', () => {
 });
 
 orderedCameras().forEach(createPlayer);
+enablePullToRefresh();
 enableReordering();
