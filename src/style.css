@@ -28,11 +28,14 @@ button { font: inherit; }
   overflow: hidden;
 }
 
-.topbar { display: flex; flex: none; align-items: center; height: 40px; margin-bottom: 9px; padding: 0 2px; }
+.topbar { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; height: 40px; margin-bottom: 9px; padding: 0 2px; }
 .brand { display: flex; min-width: 0; align-items: center; gap: 9px; }
 .brand-icon { display: grid; flex: none; width: 34px; height: 34px; place-items: center; border: 1px solid #2f6d6a; border-radius: 10px; color: #60ded2; background: #153439; }
 .brand-icon svg { width: 22px; height: 22px; }
 h1 { overflow: hidden; margin: 0; font-size: 1.03rem; font-weight: 700; letter-spacing: -.025em; text-overflow: ellipsis; white-space: nowrap; }
+.share-button { display: inline-flex; flex: none; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid #31565a; border-radius: 9px; color: #dff8f5; background: #10282ca8; font-size: .76rem; font-weight: 650; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.share-button svg { width: 16px; height: 16px; }
+.share-button.copied { color: #60ded2; border-color: #499d96; }
 
 .grid {
   display: grid;
@@ -108,6 +111,7 @@ html.standalone-app .version-label { bottom: calc(env(safe-area-inset-bottom) + 
 .beach-thumb canvas { display: block; width: 100%; aspect-ratio: 1.55; object-fit: cover; background: #17282b; }
 .beach-thumb span { display: block; overflow: hidden; padding: 5px 3px; font-size: .58rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .viewer.landscape-mode .beach-switcher { display: none; }
+.viewer.landscape-mode .viewer-gradient { display: none; }
 
 @media (orientation: portrait) {
   .viewer.landscape-mode { top: 50%; left: 50%; width: 100dvh; height: 100dvw; transform: translate(-50%, -50%) rotate(90deg); }
@@ -115,6 +119,7 @@ html.standalone-app .version-label { bottom: calc(env(safe-area-inset-bottom) + 
 
 @media (orientation: landscape) {
   .viewer.open .beach-switcher { display: none; }
+  .viewer.open .viewer-gradient { display: none; }
 }
 
 @media (min-width: 700px) {

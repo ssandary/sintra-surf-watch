@@ -72,6 +72,10 @@ app.innerHTML = `
         </span>
         <h1>Sintra Surf Watch</h1>
       </div>
+      <button class="share-button" type="button" aria-label="Share Sintra Surf Watch with a friend">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 11v7.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Share</span>
+      </button>
     </header>
     <div class="grid" aria-label="Live beach cameras"></div>
   </main>
@@ -394,6 +398,31 @@ function lockOverviewPortrait() {
   if (!expandedCard) screen.orientation?.lock?.('portrait-primary').catch(() => {});
 }
 
+async function shareApp() {
+  const button = app.querySelector('.share-button');
+  const shareData = {
+    title: 'Sintra Surf Watch',
+    text: 'Watch the live beach cameras around Sintra.',
+    url: `${location.origin}${location.pathname}`,
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      return;
+    }
+    await navigator.clipboard.writeText(shareData.url);
+    button.classList.add('copied');
+    button.querySelector('span').textContent = 'Copied';
+    window.setTimeout(() => {
+      button.classList.remove('copied');
+      button.querySelector('span').textContent = 'Share';
+    }, 1800);
+  } catch (error) {
+    if (error?.name !== 'AbortError') button.setAttribute('title', 'Unable to share this link');
+  }
+}
+
 function restoreExpandedCard() {
   if (!expandedCard || !expandedPlaceholder) return;
   const card = expandedCard;
@@ -440,7 +469,7 @@ function setLandscape(enabled) {
   }
 }
 
-function closeExpanded() {
+async function closeExpanded() {
   if (!expandedCard) return;
   resetVideoZoom();
   restoreExpandedCard();
@@ -450,8 +479,12 @@ function closeExpanded() {
   viewer.classList.remove('open');
   viewer.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('viewing-camera');
+  if (document.fullscreenElement && screen.orientation?.lock) {
+    try { await screen.orientation.lock('portrait-primary'); } catch { /* The manifest still requests portrait. */ }
+  }
   if (document.fullscreenElement) {
-    document.exitFullscreen().catch(() => {}).finally(lockOverviewPortrait);
+    await document.exitFullscreen().catch(() => {});
+    lockOverviewPortrait();
   } else {
     lockOverviewPortrait();
   }
@@ -569,6 +602,7 @@ function enableReordering() {
 
 viewer.querySelector('.viewer-close').addEventListener('click', closeExpanded);
 viewer.querySelector('.orientation-button').addEventListener('click', () => setLandscape(!landscapeMode));
+app.querySelector('.share-button').addEventListener('click', shareApp);
 viewerMedia.addEventListener('touchstart', (event) => {
   if (!expandedCard) return;
   if (event.touches.length === 2) {
@@ -609,6 +643,7 @@ viewerMedia.addEventListener('touchend', (event) => {
 });
 viewerMedia.addEventListener('touchcancel', () => { touchGesture = null; });
 orientationQuery.addEventListener?.('change', () => {
+  if (!landscapeMode) screen.orientation?.lock?.('portrait-primary').catch(() => {});
   window.requestAnimationFrame(applyVideoTransform);
 });
 document.addEventListener('keydown', (event) => {
