@@ -1,8 +1,10 @@
 # Sintra Surf Watch
 
-A mobile-first live view of six beach cameras near Sintra. All six muted streams play together. Tap a camera for a portrait full-screen view and use its close button to return to the grid. Hold and drag a camera to rearrange the grid; its order is saved on that device. The initial order is Praia Grande North, Praia Grande South, Praia Pequena, Praia das Maçãs, Adraga, and Magoito.
+A mobile-first live view of beach cameras between Carcavelos and Ericeira. All selected muted streams play together. Tap a camera for a portrait full-screen view and use its close button to return to the grid. Hold and drag a camera to rearrange the grid; its selection and order are saved on that device. The initial six are Praia Grande North, Praia Pequena, Praia das Maçãs, Adraga, Magoito, and Foz do Lizandro.
 
-The app opens with a full-screen welcome while all six camera streams start in the background. Its rotating loading message reports live progress from `[0/6]` to `[6/6]`, and a tap skips directly to the dashboard. The dashboard is fixed to the portrait phone viewport and does not scroll. Pull the six-camera grid downward to reconnect all streams after the app has been in the background. Selecting a beach opens a viewer with live snapshot buttons for the other beaches, pinch zoom and one-finger panning on the selected video, and an optional landscape control that hides the other feeds while keeping zoom and pan available.
+The app opens with a full-screen welcome while the selected camera streams start in the background. Its rotating loading message reports live progress, and a tap skips directly to the dashboard. The dashboard is fixed to the portrait phone viewport and does not scroll. Pull the camera grid downward to reconnect all streams after the app has been in the background. Selecting a beach opens a viewer with live snapshot buttons for the other beaches, pinch zoom and one-finger panning on the selected video, and an optional landscape control that hides the other feeds while keeping zoom and pan available.
+
+Settings includes the currently working public feeds found from Carcavelos through Ericeira. Users can choose any combination or add a custom HTTPS HLS (`.m3u8`) stream. These preferences stay in local browser storage.
 
 ## Run locally
 

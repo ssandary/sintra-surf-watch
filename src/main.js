@@ -3,19 +3,86 @@ import packageMetadata from '../package.json';
 import './style.css';
 
 document.title = 'Sintra Surf Watch';
-document.documentElement.classList.toggle(
-  'standalone-app',
-  window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true,
-);
 
-const cameras = [
-  { id: 'praiagrande', name: 'Praia Grande North', url: 'https://video-auth1.iol.pt/beachcam/praiagrande/playlist.m3u8' },
-  { id: 'praiagrande2', name: 'Praia Grande South', url: 'https://video-auth1.iol.pt/beachcam/praiagrande2/playlist.m3u8' },
-  { id: 'bcpraiapequena', name: 'Praia Pequena', url: 'https://video-auth1.iol.pt/beachcam/bcpraiapequena/playlist.m3u8' },
-  { id: 'praiadasmacas', name: 'Praia das Maçãs', url: 'https://video-auth1.iol.pt/beachcam/praiadasmacas/playlist.m3u8' },
-  { id: 'bcadraga', name: 'Adraga', url: 'https://video-auth1.iol.pt/beachcam/bcadraga/playlist.m3u8' },
-  { id: 'bcmagoito', name: 'Magoito', url: 'https://video-auth1.iol.pt/beachcam/bcmagoito/playlist.m3u8' },
+const builtInCameras = [
+  { id: 'carcavelos', name: 'Carcavelos', region: 'Carcavelos & Estoril', url: 'https://video-auth1.iol.pt/beachcam/carcavelos/playlist.m3u8' },
+  { id: 'carcavelos2', name: 'Carcavelos · Calhau', region: 'Carcavelos & Estoril', url: 'https://video-auth1.iol.pt/beachcam/carcavelos2/playlist.m3u8' },
+  { id: 'parede', name: 'Parede', region: 'Carcavelos & Estoril', url: 'https://video-auth1.iol.pt/beachcam/parede/playlist.m3u8' },
+  { id: 'praiadasavencas', name: 'Avencas', region: 'Carcavelos & Estoril', url: 'https://video-auth1.iol.pt/beachcam/praiadasavencas/playlist.m3u8' },
+  { id: 'tamariz', name: 'Tamariz', region: 'Carcavelos & Estoril', url: 'https://video-auth1.iol.pt/beachcam/tamariz/playlist.m3u8' },
+  { id: 'conceicao', name: 'Conceição & Duquesa', region: 'Cascais & Guincho', url: 'https://video-auth1.iol.pt/beachcam/conceicao/playlist.m3u8' },
+  { id: 'praiadospescadores', name: 'Baía de Cascais', region: 'Cascais & Guincho', url: 'https://video-auth1.iol.pt/beachcam/praiadospescadores/playlist.m3u8' },
+  { id: 'crismina', name: 'Cresmina', region: 'Cascais & Guincho', url: 'https://video-auth1.iol.pt/beachcam/crismina/playlist.m3u8' },
+  { id: 'praiaguinchosul', name: 'Guincho South', region: 'Cascais & Guincho', url: 'https://video-auth1.iol.pt/beachcam/praiaguinchosul/playlist.m3u8' },
+  { id: 'bcguinchofixa', name: 'Guincho · Static', region: 'Cascais & Guincho', url: 'https://video-auth1.iol.pt/beachcam/bcguinchofixa/playlist.m3u8' },
+  { id: 'praiaguinchonorte', name: 'Guincho North', region: 'Cascais & Guincho', url: 'https://video-auth1.iol.pt/beachcam/praiaguinchonorte/playlist.m3u8' },
+  { id: 'bcadraga', name: 'Adraga', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/bcadraga/playlist.m3u8' },
+  { id: 'praiagrande', name: 'Praia Grande North', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/praiagrande/playlist.m3u8' },
+  { id: 'bcpraiapequena', name: 'Praia Pequena', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/bcpraiapequena/playlist.m3u8' },
+  { id: 'praiadasmacas', name: 'Praia das Maçãs', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/praiadasmacas/playlist.m3u8' },
+  { id: 'bcmagoito', name: 'Magoito', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/bcmagoito/playlist.m3u8' },
+  { id: 'fozdolizandro', name: 'Foz do Lizandro', region: 'Ericeira', url: 'https://video-auth1.iol.pt/beachcam/fozdolizandro/playlist.m3u8' },
+  { id: 'praiadosulericeira', name: 'Ericeira · Praia do Sul', region: 'Ericeira', url: 'https://video-auth1.iol.pt/beachcam/praiadosulericeira/playlist.m3u8' },
+  { id: 'bcpescadores', name: 'Ericeira · Pescadores', region: 'Ericeira', url: 'https://video-auth1.iol.pt/beachcam/bcpescadores/playlist.m3u8' },
+  { id: 'matadouroskatepark', name: 'Matadouro & Skatepark', region: 'Ericeira', url: 'https://video-auth1.iol.pt/beachcam/matadouroskatepark/playlist.m3u8' },
+  { id: 'ericeiraspots', name: 'Ericeira Spots', region: 'Ericeira', url: 'https://video-auth1.iol.pt/beachcam/ericeiraspots/playlist.m3u8' },
 ];
+
+const defaultCameraIds = [
+  'praiagrande',
+  'bcpraiapequena',
+  'praiadasmacas',
+  'bcadraga',
+  'bcmagoito',
+  'fozdolizandro',
+];
+const orderKey = 'sintra-surf-watch-camera-order';
+const selectedKey = 'sintra-surf-watch-selected-cameras';
+const customKey = 'sintra-surf-watch-custom-cameras';
+
+function loadCustomCameras() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(customKey) || '[]');
+    if (!Array.isArray(saved)) return [];
+    return saved.filter((camera) => camera && typeof camera.id === 'string'
+      && typeof camera.name === 'string' && typeof camera.url === 'string')
+      .map((camera) => ({ ...camera, region: 'My webcams', custom: true }));
+  } catch {
+    return [];
+  }
+}
+
+let customCameras = loadCustomCameras();
+
+function allCameras() {
+  return [...builtInCameras, ...customCameras];
+}
+
+function loadSelectedCameraIds() {
+  const availableIds = new Set(allCameras().map(({ id }) => id));
+  try {
+    const saved = JSON.parse(localStorage.getItem(selectedKey) || 'null');
+    if (Array.isArray(saved)) {
+      const valid = [...new Set(saved)].filter((id) => availableIds.has(id));
+      if (valid.length) return valid;
+    }
+  } catch { /* Use the initial selection. */ }
+  return defaultCameraIds.filter((id) => availableIds.has(id));
+}
+
+function resolveCameraOrder(selectedIds) {
+  const selected = new Set(selectedIds);
+  const available = new Map(allCameras().map((camera) => [camera.id, camera]));
+  let savedOrder = [];
+  try {
+    const saved = JSON.parse(localStorage.getItem(orderKey) || '[]');
+    if (Array.isArray(saved)) savedOrder = saved.filter((id) => selected.has(id));
+  } catch { /* Keep catalogue order. */ }
+  const orderedIds = [...new Set([...savedOrder, ...selectedIds])];
+  return orderedIds.map((id) => available.get(id)).filter(Boolean);
+}
+
+let cameras = resolveCameraOrder(loadSelectedCameraIds());
 
 const splashMessages = [
   'Intercepting available webcam streams',
@@ -42,26 +109,14 @@ function nextSplashMessage() {
   }
 }
 
-const orderKey = 'sintra-surf-watch-camera-order';
-function orderedCameras() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(orderKey));
-    if (Array.isArray(saved) && saved.length === cameras.length
-      && new Set(saved).size === cameras.length && saved.every((id) => cameras.some((camera) => camera.id === id))) {
-      return saved.map((id) => cameras.find((camera) => camera.id === id));
-    }
-  } catch { /* Use the default order if storage is unavailable. */ }
-  return cameras;
-}
-
 const app = document.querySelector('#app');
 const displayVersion = packageMetadata.version.replace(/\.0$/, '');
 app.innerHTML = `
   <section class="splash" aria-label="Loading Sintra Surf Watch" role="button" tabindex="0">
     <div class="splash-center">
-      <p><span class="splash-message"></span><span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span> <span class="splash-count" aria-live="polite">[0/6]</span></p>
+      <p><span class="splash-message"></span><span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span> <span class="splash-count" aria-live="polite">[0/${cameras.length}]</span></p>
     </div>
-    <p class="splash-signoff">Seja bem-vindo!</p>
+    <p class="splash-skip">Tap anywhere to skip</p>
     <span class="version-label" aria-label="Version ${displayVersion}">v${displayVersion}</span>
   </section>
   <main class="shell" aria-hidden="true">
@@ -72,9 +127,9 @@ app.innerHTML = `
         </span>
         <h1>Sintra Surf Watch</h1>
       </div>
-      <button class="share-button" type="button" aria-label="Share Sintra Surf Watch with a friend">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 11v7.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Share</span>
+      <button class="settings-button" type="button" aria-label="Open webcam settings">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8.3a3.7 3.7 0 1 0 0 7.4 3.7 3.7 0 0 0 0-7.4Z" stroke="currentColor" stroke-width="1.8"/><path d="M19.2 13.6a7.8 7.8 0 0 0 0-3.2l2-1.5-2-3.4-2.5 1a8.2 8.2 0 0 0-2.7-1.6L13.7 2H9.8l-.4 2.9a8.2 8.2 0 0 0-2.7 1.6l-2.5-1-2 3.4 2 1.5a7.8 7.8 0 0 0 0 3.2l-2 1.5 2 3.4 2.5-1a8.2 8.2 0 0 0 2.7 1.6l.4 2.9h3.9l.4-2.9a8.2 8.2 0 0 0 2.7-1.6l2.5 1 2-3.4-2.1-1.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span>Settings</span>
       </button>
     </header>
     <div class="pull-refresh" role="status" aria-live="polite">
@@ -83,6 +138,25 @@ app.innerHTML = `
     </div>
     <div class="grid" aria-label="Live beach cameras"></div>
   </main>
+  <section class="settings-panel" aria-hidden="true">
+    <button class="settings-backdrop" type="button" aria-label="Close settings"></button>
+    <div class="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <header class="settings-header">
+        <div><span class="settings-kicker">MY COAST</span><h2 id="settings-title">Webcam settings</h2></div>
+        <button class="settings-close" type="button" aria-label="Close settings">×</button>
+      </header>
+      <p class="settings-intro">Choose the feeds shown on your watch screen. Your selection and order stay on this device.</p>
+      <div class="camera-options"></div>
+      <form class="custom-camera-form">
+        <h3>Add another webcam</h3>
+        <label><span>Name</span><input name="name" type="text" maxlength="42" placeholder="My beach" required></label>
+        <label><span>HLS stream link</span><input name="url" type="url" inputmode="url" placeholder="https://…/playlist.m3u8" required></label>
+        <p class="form-message" aria-live="polite"></p>
+        <button class="add-camera-button" type="submit">Add webcam</button>
+      </form>
+      <button class="settings-done" type="button">Done</button>
+    </div>
+  </section>
   <section class="viewer" aria-hidden="true">
     <div class="viewer-media"></div>
     <div class="viewer-gradient" aria-hidden="true"></div>
@@ -109,6 +183,8 @@ const viewer = app.querySelector('.viewer');
 const viewerMedia = app.querySelector('.viewer-media');
 const switcher = app.querySelector('.beach-switcher');
 const splashCount = app.querySelector('.splash-count');
+const settingsPanel = app.querySelector('.settings-panel');
+const cameraOptions = app.querySelector('.camera-options');
 app.querySelector('.splash-message').textContent = nextSplashMessage();
 let expandedCard = null;
 let expandedPlaceholder = null;
@@ -127,6 +203,7 @@ let pullGesture = null;
 let refreshing = false;
 let refreshPending = new Set();
 let refreshTimer = null;
+let settingsSelection = new Set();
 
 function dismissSplash(immediate = false) {
   if (splashDismissed) return;
@@ -152,6 +229,124 @@ function saveCameraOrder() {
   try {
     localStorage.setItem(orderKey, JSON.stringify([...grid.querySelectorAll('.camera-card')].map((card) => card.dataset.id)));
   } catch { /* The current order still works for this visit. */ }
+}
+
+function updateGridLayout() {
+  const count = cameras.length;
+  grid.dataset.columns = count <= 6 ? '2' : count <= 12 ? '3' : '4';
+  grid.dataset.density = count <= 6 ? 'normal' : count <= 12 ? 'compact' : 'dense';
+}
+
+function stopPlayers() {
+  for (const player of players) {
+    player.stopped = true;
+    window.clearTimeout(player.retryTimer);
+    player.hls?.destroy();
+    player.video.pause();
+    player.video.removeAttribute('src');
+    player.video.load();
+  }
+  players.length = 0;
+  readyPlayers.clear();
+  grid.replaceChildren();
+}
+
+function applyCameraSelection(selectedIds) {
+  const currentOrder = [...grid.querySelectorAll('.camera-card')].map((card) => card.dataset.id);
+  const selected = new Set(selectedIds);
+  const nextOrder = [...currentOrder.filter((id) => selected.has(id)),
+    ...selectedIds.filter((id) => !currentOrder.includes(id))];
+  try {
+    localStorage.setItem(selectedKey, JSON.stringify(selectedIds));
+    localStorage.setItem(orderKey, JSON.stringify(nextOrder));
+  } catch { /* The selection still works for this visit. */ }
+  window.clearTimeout(refreshTimer);
+  refreshing = false;
+  refreshTimer = null;
+  resetPullInterface();
+  stopPlayers();
+  cameras = resolveCameraOrder(selectedIds);
+  splashCount.textContent = `[0/${cameras.length}]`;
+  cameras.forEach(createPlayer);
+  updateGridLayout();
+}
+
+function renderSettingsOptions() {
+  cameraOptions.replaceChildren();
+  const groups = new Map();
+  for (const camera of allCameras()) {
+    if (!groups.has(camera.region)) groups.set(camera.region, []);
+    groups.get(camera.region).push(camera);
+  }
+
+  for (const [region, regionCameras] of groups) {
+    const section = document.createElement('section');
+    section.className = 'camera-group';
+    const title = document.createElement('h3');
+    title.textContent = region;
+    section.append(title);
+    for (const camera of regionCameras) {
+      const label = document.createElement('label');
+      label.className = 'camera-option';
+      const name = document.createElement('span');
+      const checkbox = document.createElement('input');
+      const toggle = document.createElement('i');
+      name.textContent = camera.name;
+      checkbox.type = 'checkbox';
+      checkbox.value = camera.id;
+      toggle.setAttribute('aria-hidden', 'true');
+      label.append(name, checkbox, toggle);
+      checkbox.checked = settingsSelection.has(camera.id);
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) settingsSelection.add(camera.id);
+        else if (settingsSelection.size > 1) settingsSelection.delete(camera.id);
+        else checkbox.checked = true;
+      });
+      section.append(label);
+    }
+    cameraOptions.append(section);
+  }
+}
+
+function openSettings() {
+  settingsSelection = new Set(cameras.map(({ id }) => id));
+  renderSettingsOptions();
+  settingsPanel.classList.add('open');
+  settingsPanel.removeAttribute('aria-hidden');
+  document.body.classList.add('settings-open');
+  app.querySelector('.settings-close').focus();
+}
+
+function closeSettings(applyChanges = false) {
+  if (!settingsPanel.classList.contains('open')) return;
+  if (applyChanges) applyCameraSelection([...settingsSelection]);
+  settingsPanel.classList.remove('open');
+  settingsPanel.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('settings-open');
+  app.querySelector('.settings-button').focus();
+}
+
+function addCustomCamera(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const message = form.querySelector('.form-message');
+  const name = form.elements.name.value.trim();
+  const rawUrl = form.elements.url.value.trim();
+  let url;
+  try { url = new URL(rawUrl); } catch { /* Validation message is set below. */ }
+  if (!name || !url || url.protocol !== 'https:' || !/\.m3u8(?:$|[?#])/i.test(url.href)) {
+    message.textContent = 'Enter a name and a secure .m3u8 stream link.';
+    return;
+  }
+
+  const id = `custom-${crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
+  const camera = { id, name, url: url.href, region: 'My webcams', custom: true };
+  customCameras.push(camera);
+  settingsSelection.add(id);
+  try { localStorage.setItem(customKey, JSON.stringify(customCameras)); } catch { /* Keep it for this visit. */ }
+  form.reset();
+  message.textContent = `${name} added.`;
+  renderSettingsOptions();
 }
 
 function setStatus(card, state, message) {
@@ -188,7 +383,7 @@ function createPlayer(camera) {
   const video = card.querySelector('video');
   grid.append(card);
 
-  const player = { card, video, hls: null, retryTimer: null, camera };
+  const player = { card, video, hls: null, retryTimer: null, camera, stopped: false };
   players.push(player);
 
   video.addEventListener('playing', () => {
@@ -240,6 +435,7 @@ function createPlayer(camera) {
 
 function startPlayer(player) {
   const { card, video, camera } = player;
+  player.stopped = false;
   clearTimeout(player.retryTimer);
   player.retryTimer = null;
   player.hls?.destroy();
@@ -279,7 +475,7 @@ function startPlayer(player) {
 }
 
 function scheduleRetry(player) {
-  if (player.retryTimer) return;
+  if (player.stopped || player.retryTimer) return;
   setStatus(player.card, 'error', 'Retrying stream');
   player.retryTimer = window.setTimeout(() => startPlayer(player), 8000);
 }
@@ -509,31 +705,6 @@ function lockOverviewPortrait() {
   if (!expandedCard) screen.orientation?.lock?.('portrait-primary').catch(() => {});
 }
 
-async function shareApp() {
-  const button = app.querySelector('.share-button');
-  const shareData = {
-    title: 'Sintra Surf Watch',
-    text: 'Watch the live beach cameras around Sintra.',
-    url: `${location.origin}${location.pathname}`,
-  };
-
-  try {
-    if (navigator.share) {
-      await navigator.share(shareData);
-      return;
-    }
-    await navigator.clipboard.writeText(shareData.url);
-    button.classList.add('copied');
-    button.querySelector('span').textContent = 'Copied';
-    window.setTimeout(() => {
-      button.classList.remove('copied');
-      button.querySelector('span').textContent = 'Share';
-    }, 1800);
-  } catch (error) {
-    if (error?.name !== 'AbortError') button.setAttribute('title', 'Unable to share this link');
-  }
-}
-
 function restoreExpandedCard() {
   if (!expandedCard || !expandedPlaceholder) return;
   const card = expandedCard;
@@ -713,7 +884,11 @@ function enableReordering() {
 
 viewer.querySelector('.viewer-close').addEventListener('click', closeExpanded);
 viewer.querySelector('.orientation-button').addEventListener('click', () => setLandscape(!landscapeMode));
-app.querySelector('.share-button').addEventListener('click', shareApp);
+app.querySelector('.settings-button').addEventListener('click', openSettings);
+app.querySelector('.settings-close').addEventListener('click', () => closeSettings(false));
+app.querySelector('.settings-backdrop').addEventListener('click', () => closeSettings(false));
+app.querySelector('.settings-done').addEventListener('click', () => closeSettings(true));
+app.querySelector('.custom-camera-form').addEventListener('submit', addCustomCamera);
 viewerMedia.addEventListener('touchstart', (event) => {
   if (!expandedCard) return;
   if (event.touches.length === 2) {
@@ -758,12 +933,16 @@ orientationQuery.addEventListener?.('change', () => {
   window.requestAnimationFrame(applyVideoTransform);
 });
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') closeExpanded();
+  if (event.key === 'Escape') {
+    if (settingsPanel.classList.contains('open')) closeSettings(false);
+    else closeExpanded();
+  }
 });
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) players.forEach(({ video, card }) => attemptPlay(video, card));
 });
 
-orderedCameras().forEach(createPlayer);
+cameras.forEach(createPlayer);
+updateGridLayout();
 enablePullToRefresh();
 enableReordering();
