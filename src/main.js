@@ -18,6 +18,7 @@ const builtInCameras = [
   { id: 'praiaguinchonorte', name: 'Guincho North', region: 'Cascais & Guincho', url: 'https://video-auth1.iol.pt/beachcam/praiaguinchonorte/playlist.m3u8' },
   { id: 'bcadraga', name: 'Adraga', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/bcadraga/playlist.m3u8' },
   { id: 'praiagrande', name: 'Praia Grande North', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/praiagrande/playlist.m3u8' },
+  { id: 'praiagrande2', name: 'Praia Grande South', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/praiagrande2/playlist.m3u8' },
   { id: 'bcpraiapequena', name: 'Praia Pequena', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/bcpraiapequena/playlist.m3u8' },
   { id: 'praiadasmacas', name: 'Praia das Maçãs', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/praiadasmacas/playlist.m3u8' },
   { id: 'bcmagoito', name: 'Magoito', region: 'Sintra', url: 'https://video-auth1.iol.pt/beachcam/bcmagoito/playlist.m3u8' },
