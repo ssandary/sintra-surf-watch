@@ -4,7 +4,7 @@ A mobile-first live view of beach cameras between Carcavelos and Ericeira. All s
 
 The app opens with a full-screen welcome while the selected camera streams start in the background. Its rotating loading message reports live progress, and a tap skips directly to the dashboard. The dashboard is fixed to the portrait phone viewport and does not scroll. Pull the camera grid downward to reconnect all streams after the app has been in the background. Selecting a beach opens a viewer with live snapshot buttons for the other beaches, pinch zoom and one-finger panning on the selected video, and an optional landscape control that hides the other feeds while keeping zoom and pan available.
 
-Settings includes the currently working public feeds found from Carcavelos through Ericeira. Users can choose any combination or add a custom HTTPS HLS (`.m3u8`) stream. These preferences stay in local browser storage.
+Settings includes the currently working public feeds found from Carcavelos through Ericeira. Users can choose any combination, and their preferences stay in local browser storage.
 
 ## Run locally
 

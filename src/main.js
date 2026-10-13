@@ -38,24 +38,9 @@ const defaultCameraIds = [
 ];
 const orderKey = 'sintra-surf-watch-camera-order';
 const selectedKey = 'sintra-surf-watch-selected-cameras';
-const customKey = 'sintra-surf-watch-custom-cameras';
-
-function loadCustomCameras() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(customKey) || '[]');
-    if (!Array.isArray(saved)) return [];
-    return saved.filter((camera) => camera && typeof camera.id === 'string'
-      && typeof camera.name === 'string' && typeof camera.url === 'string')
-      .map((camera) => ({ ...camera, region: 'My webcams', custom: true }));
-  } catch {
-    return [];
-  }
-}
-
-let customCameras = loadCustomCameras();
 
 function allCameras() {
-  return [...builtInCameras, ...customCameras];
+  return builtInCameras;
 }
 
 function loadSelectedCameraIds() {
@@ -116,8 +101,10 @@ app.innerHTML = `
     <div class="splash-center">
       <p><span class="splash-message"></span><span class="loading-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span> <span class="splash-count" aria-live="polite">[0/${cameras.length}]</span></p>
     </div>
-    <p class="splash-skip">Tap anywhere to skip</p>
-    <span class="version-label" aria-label="Version ${displayVersion}">v${displayVersion}</span>
+    <div class="splash-footer">
+      <p class="splash-skip">Tap anywhere to skip</p>
+      <span class="version-label" aria-label="Version ${displayVersion}">v${displayVersion}</span>
+    </div>
   </section>
   <main class="shell" aria-hidden="true">
     <header class="topbar">
@@ -147,13 +134,6 @@ app.innerHTML = `
       </header>
       <p class="settings-intro">Choose the feeds shown on your watch screen. Your selection and order stay on this device.</p>
       <div class="camera-options"></div>
-      <form class="custom-camera-form">
-        <h3>Add another webcam</h3>
-        <label><span>Name</span><input name="name" type="text" maxlength="42" placeholder="My beach" required></label>
-        <label><span>HLS stream link</span><input name="url" type="url" inputmode="url" placeholder="https://…/playlist.m3u8" required></label>
-        <p class="form-message" aria-live="polite"></p>
-        <button class="add-camera-button" type="submit">Add webcam</button>
-      </form>
       <button class="settings-done" type="button">Done</button>
     </div>
   </section>
@@ -199,6 +179,7 @@ const players = [];
 const suppressedClicks = new WeakSet();
 const readyPlayers = new Set();
 let splashDismissed = false;
+let splashTimer = null;
 let pullGesture = null;
 let refreshing = false;
 let refreshPending = new Set();
@@ -208,6 +189,7 @@ let settingsSelection = new Set();
 function dismissSplash(immediate = false) {
   if (splashDismissed) return;
   splashDismissed = true;
+  window.clearTimeout(splashTimer);
   shell.removeAttribute('aria-hidden');
   lockOverviewPortrait();
   if (immediate) {
@@ -324,29 +306,6 @@ function closeSettings(applyChanges = false) {
   settingsPanel.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('settings-open');
   app.querySelector('.settings-button').focus();
-}
-
-function addCustomCamera(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const message = form.querySelector('.form-message');
-  const name = form.elements.name.value.trim();
-  const rawUrl = form.elements.url.value.trim();
-  let url;
-  try { url = new URL(rawUrl); } catch { /* Validation message is set below. */ }
-  if (!name || !url || url.protocol !== 'https:' || !/\.m3u8(?:$|[?#])/i.test(url.href)) {
-    message.textContent = 'Enter a name and a secure .m3u8 stream link.';
-    return;
-  }
-
-  const id = `custom-${crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
-  const camera = { id, name, url: url.href, region: 'My webcams', custom: true };
-  customCameras.push(camera);
-  settingsSelection.add(id);
-  try { localStorage.setItem(customKey, JSON.stringify(customCameras)); } catch { /* Keep it for this visit. */ }
-  form.reset();
-  message.textContent = `${name} added.`;
-  renderSettingsOptions();
 }
 
 function setStatus(card, state, message) {
@@ -888,7 +847,6 @@ app.querySelector('.settings-button').addEventListener('click', openSettings);
 app.querySelector('.settings-close').addEventListener('click', () => closeSettings(false));
 app.querySelector('.settings-backdrop').addEventListener('click', () => closeSettings(false));
 app.querySelector('.settings-done').addEventListener('click', () => closeSettings(true));
-app.querySelector('.custom-camera-form').addEventListener('submit', addCustomCamera);
 viewerMedia.addEventListener('touchstart', (event) => {
   if (!expandedCard) return;
   if (event.touches.length === 2) {
@@ -942,6 +900,7 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) players.forEach(({ video, card }) => attemptPlay(video, card));
 });
 
+splashTimer = window.setTimeout(() => dismissSplash(true), 7000);
 cameras.forEach(createPlayer);
 updateGridLayout();
 enablePullToRefresh();
